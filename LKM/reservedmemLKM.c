@@ -2,6 +2,8 @@
 #include <linux/kernel.h>
 #include <linux/device.h>
 #include <linux/init.h>
+// #include <linux/types.h>
+#include <linux/stat.h>
 #include <linux/fs.h>
 #include <linux/mm.h>
 #include <linux/vmalloc.h>
@@ -16,8 +18,8 @@ MODULE_DESCRIPTION("Linux Kernel Module, to acces reserved memory from user spac
 #define DRIVER_NAME "reservedmemLKM"
 #define DRIVER_CLASS "reservedmemLKMClass"
 
-#define P_OFFSET 0x70000000
-#define P_LENGTH 0x01000000
+#define P_OFFSET 0x70000000 //!UPDATE TO YOUR PHYSICAL MEMORY OFFSET
+#define P_LENGTH 0x01000000 //!UPDATE TO YOUR PHYSICAL MEMORY LENGTH
 
 static struct class *class;
 static struct device *device;
@@ -33,9 +35,7 @@ static DEFINE_MUTEX(reservedmemLKM_action_mutex); //! update to action mutex
  */
 static int f_close(struct inode *inodep, struct file *filep)
 {
-    // mutex_unlock(&reservedmemLKM_file_mutex);
     pr_info("reservedmemLKM: Device successfully closed\n");
-
     return 0;
 }
 
@@ -45,23 +45,13 @@ static int f_close(struct inode *inodep, struct file *filep)
 static int f_open(struct inode *inodep, struct file *filep)
 {
     int ret = 0;
-
-    // if (!mutex_trylock(&reservedmemLKM_file_mutex))
-    // {
-    //     pr_alert("reservedmemLKM: device busy!\n");
-    //     ret = -EBUSY;
-    //     goto out;
-    // }
-
     pr_info("reserved_mem: Device opened\n");
-
-// out:
     return ret;
 }
 
 /*  executed when the user calls read to file //!SOMEHOW memcpy_fromio IS REALLY SLOW
  * the information in the buffer should be uint32_t[_offset, length, u_buffer_low, u_buffer_high]
- * Once called the data with "length(Bytes)"(from above) parameter is read from pmem (starting at p_offset) to
+ * Once called the data with "length(Bytes)" (from above) parameter is read from pmem (starting at p_offset) to
  * user buffer
  */
 static ssize_t f_read(struct file *filep, char *buffer, size_t len, loff_t *offset)
@@ -112,7 +102,7 @@ out:
 
 
 /*  executed when the user calls write to file
- * the information written to the file should be a uint32_t[[p_offset, length, u_buffer_low, u_buffer_high]]
+ * The information written to the file should be a uint32_t[[p_offset, length, u_buffer_low, u_buffer_high]]
  * Once called the data from user buffer with "length(Bytes)"(from above) parameter is written from user buffer to
  * physical memory at the specified start(P_OFFSET) and "p_offset"(from above)
  * Returns the number of Bytes written
@@ -174,17 +164,25 @@ static const struct file_operations reservedmemLKM_fops = {
     .read = f_read,
     .write = f_write,
     .release = f_close,
-    // .mmap = f_mmap,
-    /*.unlocked_ioctl = reservedmemLKM_ioctl,*/
-    // .owner = THIS_MODULE,
+    //set the owner of the file operations to all users (0666)
 };
+
+// static char *LMK_devnode(struct device *dev, umode_t *mode)
+// {
+//         if (!mode)
+//                 return NULL;
+//         if (dev->devt == MKDEV(TTYAUX_MAJOR, 0) ||
+//             dev->devt == MKDEV(TTYAUX_MAJOR, 2))
+//                 *mode = 0666;
+//         return NULL;
+// }
+
 
 static int __init reservedmemLKM_init(void)
 {
     int ret = 0;
 
     major = register_chrdev(0, DRIVER_NAME, &reservedmemLKM_fops);
-
     if (major < 0)
     {
         pr_info("reservedmemLKM: fail to register major number!\n");
@@ -200,6 +198,7 @@ static int __init reservedmemLKM_init(void)
         ret = PTR_ERR(class);
         goto out;
     }
+
 
     device = device_create(class, NULL, MKDEV(major, 0), NULL, DRIVER_NAME);
     if (IS_ERR(device))

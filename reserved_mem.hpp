@@ -34,12 +34,14 @@ public:
         memLKM = open(DEVICE_FILENAME, O_RDWR | O_NDELAY);
     };
 
+    // writes any type of user buffer to the reserved memory at the given offset
+    // length is the number of bytes to be written
     template <typename T>
     uint32_t transfer(T *src, int p_offset, int length)
     {
         int ret;
         write_info[i_P_START] = p_offset;
-        write_info[i_LENGTH] = length;//! * sizeof(T);
+        write_info[i_LENGTH] = length;
         // std::cout << "length: " << write_info[i_LENGTH] << std::endl;
         write_info[i_U_BUFFER_PTR_L] = (uint32_t)((uintptr_t)src & 0xFFFFFFFFLL);
         write_info[i_U_BUFFER_PTR_H] = (uint32_t)(((uintptr_t)src & 0xFFFFFFFF00000000LL) >> 32);
@@ -48,12 +50,14 @@ public:
         return ret;
     };
 
+    // reads any type of user buffer from the reserved memory at the given offset
+    // length is the number of bytes to be read
     template <typename T>
     uint32_t gather(T *dst, int p_offset, int length)
     {
         int ret;
         read_info[i_P_START] = p_offset;
-        read_info[i_LENGTH] = length;//! * sizeof(T);
+        read_info[i_LENGTH] = length;
 
         read_info[i_U_BUFFER_PTR_L] = (uint32_t)((uintptr_t)dst & 0xFFFFFFFFLL);
         read_info[i_U_BUFFER_PTR_H] = (uint32_t)(((uintptr_t)dst & 0xFFFFFFFF00000000LL) >> 32);
