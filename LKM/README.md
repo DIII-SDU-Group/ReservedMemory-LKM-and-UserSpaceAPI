@@ -1,4 +1,5 @@
 #To insert kernel module:
+
 sudo insmod <path>/reservedmemLKM.ko
 
 #To load kernel module on startup:
