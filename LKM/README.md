@@ -1,8 +1,4 @@
-#To insert kernel module:
-
-sudo insmod <path>/reservedmemLKM.ko
-
-#To load kernel module on startup:
+To load kernel module on startup:
 
 Add "sudo insmod <path>/reservedmemLKM.ko && sudo chmod 666 /dev/reservedmemLKM && lsmod | grep "reservedmemLKM"" to the /etc/rc.local file
 
